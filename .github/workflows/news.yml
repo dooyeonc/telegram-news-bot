@@ -3,9 +3,9 @@ name: Daily News Bot
 on:
   schedule:
     - cron: "0 0 * * *"      # 오전 9시 (KST)
-    - cron: "17 0 * * *"     # 오전 9시 17분 (KST)
+    - cron: "20 0 * * *"     # 오전 9시 20분 (KST)
     - cron: "30 6 * * *"     # 오후 3시 30분 (KST)
-  workflow_dispatch:          # 수동 실행 가능
+  workflow_dispatch:          # 수동 실행도 가능
 
 jobs:
   run-news-bot:
