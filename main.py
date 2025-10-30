@@ -83,26 +83,26 @@ def get_real_article_link(ranking_link, press_code, title):
 
 
 def clean_title(text: str) -> str:
-    """제목에서 노이즈(순위, 영상, 조회수 등) 제거 — 정상 숫자는 유지"""
-    t = text.strip()
+    """제목에서 순위 숫자, 영상/조회수 표시 제거 (정상 숫자는 유지)"""
+    t = (text or "").strip().replace("\xa0", " ")
 
-    # 네이버 랭킹 페이지의 순위 숫자(예: '1 트럼프...', '2 나는...') 제거
-    t = re.sub(r"^\d+\s+", "", t)
+    # ① 맨 앞 한 자리 숫자 제거 — 뒤가 숫자(20, 2025 등)면 그대로 둠
+    t = re.sub(r"^\s*([0-9])(?![0-9])", "", t)
+    # ② 숫자 뒤에 붙은 특수기호나 공백 정리
+    t = re.sub(r"^[\.\)\-–—\"\']+\s*", "", t)
+    # ③ 다시 한 번 '1.' 패턴 제거
+    t = re.sub(r"^\s*\d\.\s*", "", t)
 
-    # '1.' 형태의 숫자 제거
-    t = re.sub(r"^\d+\.\s*", "", t)
-
-    # 괄호/대괄호 내 '영상' 관련 문구 제거
+    # ④ 괄호/대괄호 내 '영상' 문구 제거
     t = re.sub(r"\[[^\]]*영상[^\]]*\]", "", t)
     t = re.sub(r"\([^)]*영상[^)]*\)", "", t)
 
-    # 조회수 문구 제거
+    # ⑤ '조회수' 문구 제거
     t = re.sub(r"조회수\s*\d[\d,]*", "", t)
 
-    # 공백 정리
-    t = re.sub(r"\s{2,}", " ", t)
-
-    return t.strip()
+    # ⑥ 공백 정리
+    t = re.sub(r"\s{2,}", " ", t).strip()
+    return t
 
 
 def fetch_news_by_press(press_name, code, date_str):
