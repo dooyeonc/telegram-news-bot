@@ -83,11 +83,14 @@ def get_real_article_link(ranking_link, press_code, title):
 
 
 def clean_title(text: str) -> str:
-    """제목에서 순위 숫자/영상/조회수 등 노이즈 제거"""
+    """제목에서 노이즈(순위, 영상, 조회수 등) 제거 — 숫자(70대, 20년간 등)는 유지"""
     t = text.strip()
-    t = re.sub(r"^\d+\s*", "", t)
+    # 맨 앞의 "1."처럼 점이 포함된 숫자만 제거
+    t = re.sub(r"^\d+\.\s*", "", t)
+    # 괄호 안의 '영상' 관련 문구 제거
     t = re.sub(r"\[[^\]]*영상[^\]]*\]", "", t)
     t = re.sub(r"\([^)]*영상[^)]*\)", "", t)
+    # 조회수 문구 제거
     t = re.sub(r"조회수\s*\d[\d,]*", "", t)
     t = re.sub(r"\s{2,}", " ", t)
     return t.strip()
