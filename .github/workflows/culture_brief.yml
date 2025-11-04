@@ -1,34 +1,25 @@
-name: Culture Brief
+name: Culture Brief (biweekly)
 
 on:
   workflow_dispatch:
-    inputs:
-      content_path:
-        description: "컬처브리핑 파일 경로 (기본값 culture_brief/content/2025-11-07_culture_brief.txt)"
-        required: false
-        default: "culture_brief/content/2025-11-07_culture_brief.txt"
-
   schedule:
-    # 격주 금요일 오후 4:10 KST (07:10 UTC)
+    # 금요일 16:10 KST = 07:10 UTC, 2주 간격
     - cron: "10 7 */14 * 5"
 
 jobs:
-  send_culture_brief:
+  send_brief:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Set up Python
-        uses: actions/setup-python@v5
+      - uses: actions/setup-python@v5
         with:
           python-version: "3.x"
 
-      - name: Install dependencies
-        run: pip install requests
+      - run: pip install requests
 
-      - name: Send Telegram Message
+      - name: Send Culture Brief to Telegram
         env:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
-          CONTENT_PATH: ${{ github.event.inputs.content_path || 'culture_brief/content/2025-11-07_culture_brief.txt' }}
+          CONTENT_PATH: "culture_brief/content/2025-11-07_culture_brief.txt"
         run: python culture_brief/send_telegram.py
