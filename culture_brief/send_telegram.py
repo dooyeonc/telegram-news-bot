@@ -1,19 +1,19 @@
-import os
-import sys
-import time
-import requests
-from typing import List
+import os, requests, time
 
-CHANNEL_ID = "@newsnissue"  # 이슈 다이제스트 채널
-
-BOT_TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN")
+BOT_TOKEN = os.environ["TELEGRAM_BOT_TOKEN"]
+CHANNEL_ID = "@newsnissue"
 API_URL = f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage"
-MAX_LEN = 4096
 
+def send_message(text: str):
+    res = requests.post(API_URL, data={
+        "chat_id": CHANNEL_ID,
+        "text": text,
+        "disable_web_page_preview": False
+    }, timeout=30)
+    if not res.ok:
+        raise RuntimeError(f"Telegram error: {res.status_code} {res.text}")
 
-def split_message(text: str, max_len: int = MAX_LEN) -> List[str]:
-    if len(text) <= max_len:
-        return [text]
+def split_text(text, max_len=4096):
     parts, buf, count = [], [], 0
     for line in text.splitlines(keepends=True):
         if count + len(line) > max_len:
@@ -22,46 +22,22 @@ def split_message(text: str, max_len: int = MAX_LEN) -> List[str]:
         else:
             buf.append(line)
             count += len(line)
-    if buf:
-        parts.append("".join(buf))
+    if buf: parts.append("".join(buf))
     return parts
 
-
-def send_message(chat_id: str, text: str):
-    payload = {
-        "chat_id": chat_id,
-        "text": text,
-        "disable_web_page_preview": False,
-    }
-    r = requests.post(API_URL, data=payload, timeout=30)
-    if not r.ok:
-        raise RuntimeError(f"Telegram API error: {r.status_code} {r.text}")
-
-
 def main():
-    if not BOT_TOKEN:
-        raise RuntimeError("Missing TELEGRAM_BOT_TOKEN environment variable.")
-
-    content_path = os.environ.get(
-        "CONTENT_PATH", "culture_brief/content/2025-11-07_culture_brief.txt"
-    )
-    if len(sys.argv) > 1:
-        content_path = sys.argv[1]
-
-    with open(content_path, "r", encoding="utf-8") as f:
+    path = os.environ.get("CONTENT_PATH", "culture_brief/content/2025-11-07_culture_brief.txt")
+    with open(path, "r", encoding="utf-8") as f:
         text = f.read().strip()
-
-    chunks = split_message(text)
-    for part in chunks:
-        for attempt in range(3):
+    for part in split_text(text):
+        for i in range(3):
             try:
-                send_message(CHANNEL_ID, part)
+                send_message(part)
                 break
             except Exception as e:
-                if attempt == 2:
+                if i == 2:
                     raise
-                time.sleep(2 * (attempt + 1))
-
+                time.sleep(2 * (i + 1))
 
 if __name__ == "__main__":
     main()
