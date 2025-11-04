@@ -2,9 +2,10 @@ name: Naver News Bot
 
 on:
   schedule:
-    # 한국시간 기준 오전 8:57, 오후 4:43 (UTC는 9시간 느림)
-    - cron: "57 23 * * *"   # 오전 8:57 (KST)
-    - cron: "43 7 * * *"    # 오후 4:43 (KST)
+    # 한국시간(KST) 기준 오전 9:27, 오후 4:43
+    # GitHub Actions는 UTC 기준으로 동작하므로, 한국시간 -9시간 해야 함
+    - cron: "27 0 * * *"   # 오전 9:27 (KST)
+    - cron: "43 7 * * *"   # 오후 4:43 (KST)
   workflow_dispatch:
 
 jobs:
