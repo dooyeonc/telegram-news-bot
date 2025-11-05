@@ -2,8 +2,8 @@ name: Naver News Bot
 
 on:
   schedule:
-    # 한국시간 오전 9:03  (GitHub Actions는 UTC 기준 → 00:03)
-    - cron: "3 0 * * *"
+    # 한국시간 오전 9:01 (UTC 기준 00:01)
+    - cron: "1 0 * * *"
   workflow_dispatch:
 
 jobs:
