@@ -85,8 +85,7 @@ def get_real_article_link(ranking_link, press_code, title):
 def clean_title(text: str) -> str:
     """제목에서 순위 숫자/영상/조회수 등 노이즈 제거"""
     t = text.strip()
-    # 숫자로 시작하는 제목(예: 40대 같은...) 보존 처리
-    t = re.sub(r"(?<=\s)\d+\s*", "", t)
+    t = re.sub(r"^\d+\s*", "", t)
     t = re.sub(r"\[[^\]]*영상[^\]]*\]", "", t)
     t = re.sub(r"\([^)]*영상[^)]*\)", "", t)
     t = re.sub(r"조회수\s*\d[\d,]*", "", t)
@@ -132,6 +131,7 @@ def fetch_news_by_press(press_name, code, date_str):
 
 
 def build_message(news_dict):
+    """오전/오후 없이 제목 단순화"""
     now = datetime.utcnow() + timedelta(hours=9)
     date_str = now.strftime("%m/%d")
     lines = [f"<b>{date_str} 많이 본 뉴스 브리핑</b>\n"]
