@@ -24,6 +24,7 @@ PRESS = {
     "SBS": "055",
     "매일경제": "009",
     "한국경제": "015",
+    "동아사이언스": "584",
     "헬스조선": "346"
 }
 
@@ -41,6 +42,7 @@ ORDER = [
     "SBS",
     "매일경제",
     "한국경제",
+    "동아사이언스",
     "헬스조선"
 ]
 
@@ -61,7 +63,6 @@ def normalize_link(href: str):
 
 
 def extract_real_sid_link(html, press_code, ranking_link):
-    """HTML 내에서 sid=가 포함된 진짜 기사 주소를 찾아냄."""
     soup = BeautifulSoup(html, "html.parser")
     og = soup.find("meta", property="og:url")
     if og and og.get("content") and f"/article/{press_code}/" in og["content"]:
@@ -79,7 +80,6 @@ def extract_real_sid_link(html, press_code, ranking_link):
 
 
 def get_real_article_link(ranking_link, press_code, title):
-    """본문 열어서 sid 주소 찾기 + 검색 fallback"""
     try:
         html = requests.get(ranking_link, headers=UA, timeout=8).text
         real = extract_real_sid_link(html, press_code, ranking_link)
@@ -88,7 +88,6 @@ def get_real_article_link(ranking_link, press_code, title):
     except Exception:
         pass
 
-    # fallback: 네이버 뉴스 검색
     try:
         search_url = f"https://search.naver.com/search.naver?where=news&query={requests.utils.quote(title)}"
         s_html = requests.get(search_url, headers=UA, timeout=8).text
@@ -102,7 +101,6 @@ def get_real_article_link(ranking_link, press_code, title):
 
 
 def clean_title(text: str) -> str:
-    """제목에서 순위 숫자/영상/조회수 등 노이즈 제거"""
     t = text.strip()
     t = re.sub(r"^\d+\s*", "", t)
     t = re.sub(r"\[[^\]]*영상[^\]]*\]", "", t)
@@ -113,7 +111,6 @@ def clean_title(text: str) -> str:
 
 
 def fetch_news_by_press(press_name, code, date_str):
-    """언론사별 상위 기사 1~2개 가져오기"""
     url = f"https://media.naver.com/press/{code}/ranking?type=popular&date={date_str}"
     try:
         html = requests.get(url, headers=UA, timeout=TIMEOUT).text
@@ -150,7 +147,6 @@ def fetch_news_by_press(press_name, code, date_str):
 
 
 def build_message(news_dict):
-    """오전/오후 없이 제목 단순화"""
     now = datetime.utcnow() + timedelta(hours=9)
     date_str = now.strftime("%m/%d")
     lines = [f"<b>{date_str} 많이 본 뉴스 브리핑</b>\n"]
