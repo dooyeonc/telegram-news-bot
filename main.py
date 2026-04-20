@@ -1,5 +1,6 @@
 import os
 import re
+import html
 import requests
 from bs4 import BeautifulSoup
 from telegram import Bot
@@ -60,27 +61,30 @@ def normalize_link(href: str):
     return "https://n.news.naver.com/" + href.lstrip("/")
 
 
-def extract_real_sid_link(html, press_code, ranking_link):
-    soup = BeautifulSoup(html, "html.parser")
+def extract_real_sid_link(html_text, press_code, ranking_link):
+    soup = BeautifulSoup(html_text, "html.parser")
     og = soup.find("meta", property="og:url")
     if og and og.get("content") and f"/article/{press_code}/" in og["content"]:
         return og["content"]
+
     canon = soup.find("link", rel="canonical")
     if canon and canon.get("href") and f"/article/{press_code}/" in canon["href"]:
         return canon["href"]
-    sid_match = re.search(r"sid=(10[1-5])", html)
+
+    sid_match = re.search(r"sid=(10[1-5])", html_text)
     art_match = re.search(r"/article/(\d{3})/(\d+)", ranking_link)
     if sid_match and art_match:
         sid = sid_match.group(1)
         p, aid = art_match.groups()
         return f"https://n.news.naver.com/mnews/article/{p}/{aid}?sid={sid}"
+
     return None
 
 
 def get_real_article_link(ranking_link, press_code, title):
     try:
-        html = requests.get(ranking_link, headers=UA, timeout=8).text
-        real = extract_real_sid_link(html, press_code, ranking_link)
+        html_text = requests.get(ranking_link, headers=UA, timeout=8).text
+        real = extract_real_sid_link(html_text, press_code, ranking_link)
         if real:
             return real
     except Exception:
@@ -90,7 +94,10 @@ def get_real_article_link(ranking_link, press_code, title):
         search_url = f"https://search.naver.com/search.naver?where=news&query={requests.utils.quote(title)}"
         s_html = requests.get(search_url, headers=UA, timeout=8).text
         soup = BeautifulSoup(s_html, "html.parser")
-        for a in soup.find_all("a", href=re.compile(rf"https://n\.news\.naver\.com/(mnews/)?article/{press_code}/\d+")):
+        for a in soup.find_all(
+            "a",
+            href=re.compile(rf"https://n\.news\.naver\.com/(mnews/)?article/{press_code}/\d+")
+        ):
             return a["href"]
     except Exception:
         pass
@@ -111,8 +118,8 @@ def clean_title(text: str) -> str:
 def fetch_news_by_press(press_name, code, date_str):
     url = f"https://media.naver.com/press/{code}/ranking?type=popular&date={date_str}"
     try:
-        html = requests.get(url, headers=UA, timeout=TIMEOUT).text
-        soup = BeautifulSoup(html, "html.parser")
+        html_text = requests.get(url, headers=UA, timeout=TIMEOUT).text
+        soup = BeautifulSoup(html_text, "html.parser")
 
         a_tags = soup.find_all("a", href=re.compile(rf"/article/{code}/\d+"))
         items, seen = [], set()
@@ -122,6 +129,7 @@ def fetch_news_by_press(press_name, code, date_str):
             m = re.search(rf"/article/{code}/(\d+)", href)
             if not m:
                 continue
+
             aid = m.group(1)
             if aid in seen:
                 continue
@@ -152,12 +160,15 @@ def build_message(news_dict):
     for press in ORDER:
         arts = news_dict.get(press, [])
         if not arts:
-            lines.append(f"[{press}] ⚠️ 인기 기사 없음")
+            lines.append(f"[{html.escape(press)}] ⚠️ 인기 기사 없음")
             continue
-        lines.append(f"[{press}]")
+
+        lines.append(f"[{html.escape(press)}]")
         for art in arts[:1]:
-            lines.append(f"{art['title']}")
-            lines.append(art["link"])
+            safe_title = html.escape(art["title"])
+            safe_link = html.escape(art["link"])
+            lines.append(safe_title)
+            lines.append(safe_link)
         lines.append("")
 
     return "\n".join(lines).rstrip()
@@ -167,6 +178,7 @@ async def send_to_telegram(text):
     if not BOT_TOKEN:
         print("❌ TELEGRAM_BOT_TOKEN이 없습니다.")
         return
+
     bot = Bot(token=BOT_TOKEN)
     await bot.send_message(
         chat_id=CHANNEL_ID,
@@ -179,9 +191,11 @@ async def send_to_telegram(text):
 def main():
     date_str = (datetime.utcnow() + timedelta(hours=9)).strftime("%Y%m%d")
     all_news = {}
+
     for name, code in PRESS.items():
         press, items = fetch_news_by_press(name, code, date_str)
         all_news[press] = items
+
     msg = build_message(all_news)
     asyncio.run(send_to_telegram(msg))
     print("✅ Sent")
