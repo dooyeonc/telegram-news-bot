@@ -11,7 +11,7 @@ from datetime import datetime, timedelta
 BOT_TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN")
 CHANNEL_ID = "@newsnissue"
 
-PRESS = {
+ PRESS = {
     "연합뉴스": "001",
     "YTN": "052",
     "조선일보": "023",
